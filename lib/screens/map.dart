@@ -4,11 +4,15 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 
 class mapscreen extends StatefulWidget {
-  const mapscreen(
-      {super.key,
-      this.location = const placelocation(
-          address: '', latitude: 37.422, longitude: -122.084),
-      this.isselecting = true});
+  const mapscreen({
+    super.key,
+    this.location = const placelocation(
+      address: '',
+      latitude: 37.422,
+      longitude: -122.084,
+    ),
+    this.isselecting = true,
+  });
 
   final placelocation location;
   final bool isselecting;
@@ -29,24 +33,21 @@ class _mapscreenState extends State<mapscreen> {
   }
 
   Future<void> _getUserLocation() async {
-    Location location = Location();
+    final location = Location();
+
     bool serviceEnabled = await location.serviceEnabled();
     if (!serviceEnabled) {
       serviceEnabled = await location.requestService();
-      if (!serviceEnabled) {
-        return;
-      }
+      if (!serviceEnabled) return;
     }
 
     PermissionStatus permissionGranted = await location.hasPermission();
     if (permissionGranted == PermissionStatus.denied) {
       permissionGranted = await location.requestPermission();
-      if (permissionGranted != PermissionStatus.granted) {
-        return;
-      }
+      if (permissionGranted != PermissionStatus.granted) return;
     }
 
-    LocationData locationData = await location.getLocation();
+    final locationData = await location.getLocation();
     setState(() {
       _currentLocation =
           LatLng(locationData.latitude!, locationData.longitude!);
@@ -73,10 +74,11 @@ class _mapscreenState extends State<mapscreen> {
         actions: [
           if (widget.isselecting)
             IconButton(
-                onPressed: () {
-                  Navigator.of(context).pop(_pickedlocation);
-                },
-                icon: const Icon(Icons.save))
+              onPressed: () {
+                Navigator.of(context).pop(_pickedlocation);
+              },
+              icon: const Icon(Icons.save),
+            ),
         ],
       ),
       body: _currentLocation == null
@@ -85,13 +87,13 @@ class _mapscreenState extends State<mapscreen> {
               onMapCreated: (controller) {
                 _mapController = controller;
               },
-              onTap: !widget.isselecting
-                  ? null
-                  : (position) {
+              onTap: widget.isselecting
+                  ? (position) {
                       setState(() {
                         _pickedlocation = position;
                       });
-                    },
+                    }
+                  : null,
               initialCameraPosition: CameraPosition(
                 target: _pickedlocation ?? _currentLocation!,
                 zoom: 16,
@@ -106,9 +108,11 @@ class _mapscreenState extends State<mapscreen> {
                       _pickedlocation = newPosition;
                     });
                   },
-                  onTap: _moveToCurrentLocation,
                 ),
               },
+              myLocationEnabled: true, // Enable "My Location" blue dot
+              myLocationButtonEnabled:
+                  true, // Enable Google Maps' "My Location" button
             ),
     );
   }

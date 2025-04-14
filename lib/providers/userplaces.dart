@@ -8,11 +8,15 @@ import 'package:uuid/uuid.dart'; // To generate unique IDs for places
 
 Future<sql.Database> _getdatabase() async {
   final dbpath = await sql.getDatabasesPath();
-  final db = await sql.openDatabase(path.join(dbpath, 'places.db'),
-      onCreate: (db, version) {
-    return db.execute(
-        'CREATE TABLE user_places(id TEXT PRIMARY KEY, title TEXT, image TEXT, lat REAL, lng REAL, address TEXT )');
-  }, version: 1);
+  final db = await sql.openDatabase(
+    path.join(dbpath, 'places.db'),
+    onCreate: (db, version) {
+      return db.execute(
+        'CREATE TABLE user_places(id TEXT PRIMARY KEY, title TEXT, image TEXT, lat REAL, lng REAL, address TEXT)',
+      );
+    },
+    version: 1,
+  );
   return db;
 }
 
@@ -37,8 +41,7 @@ class UserplacesNotfier extends StateNotifier<List<Place>> {
       );
     }).toList();
 
-    print(
-        'Loaded places from DB: $places'); // Debug print to verify loaded places
+    print('Loaded places from DB: $places');
     state = places;
   }
 
@@ -63,13 +66,27 @@ class UserplacesNotfier extends StateNotifier<List<Place>> {
       'address': newplace.location.address,
     });
 
-    print(await db
-        .query('user_places')); // Debugging: Print the database contents
+    print(await db.query('user_places'));
     state = [newplace, ...state];
+  }
+
+  void deletePlace(String id) async {
+    final db = await _getdatabase();
+    final placeToDelete = state.firstWhere((place) => place.id == id);
+
+    // Delete the image file
+    if (File(placeToDelete.image.path).existsSync()) {
+      await File(placeToDelete.image.path).delete();
+    }
+
+    // Delete the place from the database
+    await db.delete('user_places', where: 'id = ?', whereArgs: [id]);
+
+    // Update the state
+    state = state.where((place) => place.id != id).toList();
   }
 }
 
-// Corrected StateNotifierProvider with List<Place>
 final userplacesprovider =
     StateNotifierProvider<UserplacesNotfier, List<Place>>(
   (ref) => UserplacesNotfier(),

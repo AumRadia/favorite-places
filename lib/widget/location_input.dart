@@ -8,7 +8,6 @@ import 'dart:convert';
 
 class LocationInput extends StatefulWidget {
   const LocationInput({super.key, required this.onselectlocation});
-
   final void Function(placelocation location) onselectlocation;
 
   @override
@@ -16,151 +15,154 @@ class LocationInput extends StatefulWidget {
 }
 
 class _LocationInputState extends State<LocationInput> {
-  placelocation? _pickedlocation;
-  var _isettinglocation = false;
+  placelocation? _pickedLocation;
+  var _isGettingLocation = false;
 
-  String get locationimage {
-    if (_pickedlocation == null) {
-      return '';
-    }
-    final lat = _pickedlocation!.latitude;
-    final lng = _pickedlocation!.longitude;
-
-    return 'https://maps.googleapis.com/maps/api/staticmap?center=$lat,$lng&zoom=16&size=600x300&maptype=roadmap&markers=color:blue%7Clabel:A%7C$lat,$lng&key=AIzaSyA2vHkCkvN0dG8eauJdWEC3eOJr4li1yUw';
+  String get _locationImage {
+    if (_pickedLocation == null) return '';
+    final lat = _pickedLocation!.latitude;
+    final lng = _pickedLocation!.longitude;
+    return 'https://maps.googleapis.com/maps/api/staticmap?center=$lat,$lng&zoom=16&size=600x300&maptype=roadmap&markers=color:blue%7Clabel:A%7C$lat,$lng&key=AIzaSyBMTxuLSctF8wG3xaEpN6Fk52IcdgrmSus';
   }
 
-  Future<void> _saveplace(double latitude, double longitude) async {
+  Future<void> _getLocationPreview(double lat, double lng) async {
     final url = Uri.parse(
-        'https://maps.googleapis.com/maps/api/geocode/json?latlng=$latitude,$longitude&key=AIzaSyA2vHkCkvN0dG8eauJdWEC3eOJr4li1yUw');
-    final response = await http.get(url);
-    final resdata = json.decode(response.body);
-    final address = resdata['results'][0]['formatted_address'];
-
-    setState(() {
-      _pickedlocation = placelocation(
-          address: address, latitude: latitude, longitude: longitude);
-      _isettinglocation = false;
-    });
-
-    widget.onselectlocation(_pickedlocation!);
-  }
-
-  void _getcurrentlocation() async {
-    Location location = Location();
-
-    bool serviceEnabled = await location.serviceEnabled();
-    if (!serviceEnabled) {
-      serviceEnabled = await location.requestService();
-      if (!serviceEnabled) {
-        setState(() {
-          _isettinglocation = false;
-        });
-        return;
-      }
-    }
-
-    PermissionStatus permissionGranted = await location.hasPermission();
-    if (permissionGranted == PermissionStatus.denied) {
-      permissionGranted = await location.requestPermission();
-      if (permissionGranted != PermissionStatus.granted) {
-        setState(() {
-          _isettinglocation = false;
-        });
-        return;
-      }
-    }
-
-    setState(() {
-      _isettinglocation = true;
-    });
+        'https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$lng&key=AIzaSyBMTxuLSctF8wG3xaEpN6Fk52IcdgrmSus');
 
     try {
-      LocationData locationData = await location.getLocation();
+      final response = await http.get(url);
+      final data = json.decode(response.body);
 
-      if (locationData.latitude != null && locationData.longitude != null) {
-        _saveplace(locationData.latitude!, locationData.longitude!);
-      } else {
-        setState(() {
-          _isettinglocation = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location unavailable. Try again!')),
-        );
-      }
-    } catch (error) {
+      final address = (data['results'] as List).isNotEmpty
+          ? data['results'][0]['formatted_address']
+          : 'Unknown location';
+
       setState(() {
-        _isettinglocation = false;
+        _pickedLocation =
+            placelocation(address: address, latitude: lat, longitude: lng);
+        _isGettingLocation = false;
       });
+
+      widget.onselectlocation(_pickedLocation!);
+    } catch (e) {
+      _isGettingLocation = false;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error getting location: $error')),
+        SnackBar(content: Text('Error getting location: $e')),
       );
     }
   }
 
-  void _selectonmap() async {
-    final pickedlocation = await Navigator.of(context).push<LatLng>(
-      MaterialPageRoute(builder: (ctx) => const mapscreen()),
-    );
+  Future<void> _getCurrentLocation() async {
+    final location = Location();
 
-    if (pickedlocation == null) {
+    try {
+      setState(() => _isGettingLocation = true);
+
+      if (!await location.serviceEnabled() &&
+          !await location.requestService()) {
+        return;
+      }
+
+      PermissionStatus permission = await location.hasPermission();
+      if (permission == PermissionStatus.denied) {
+        permission = await location.requestPermission();
+        if (permission != PermissionStatus.granted) return;
+      }
+
+      final locData = await location.getLocation();
+
+      if (locData.latitude == null || locData.longitude == null) {
+        return;
+      }
+
+      await _getLocationPreview(locData.latitude!, locData.longitude!);
+    } catch (e) {
+      _isGettingLocation = false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _selectOnMap() async {
+    setState(() => _isGettingLocation = true);
+    final pickedLoc = await Navigator.of(context)
+        .push<LatLng>(MaterialPageRoute(builder: (ctx) => const mapscreen()));
+
+    if (pickedLoc == null) {
+      setState(() => _isGettingLocation = false);
       return;
     }
 
-    _saveplace(pickedlocation.latitude, pickedlocation.longitude);
+    await _getLocationPreview(pickedLoc.latitude, pickedLoc.longitude);
   }
 
   @override
   Widget build(BuildContext context) {
-    Widget previewcontent = Text(
-      'No location chosen',
-      textAlign: TextAlign.center,
-      style: Theme.of(context)
-          .textTheme
-          .bodyLarge!
-          .copyWith(color: Theme.of(context).colorScheme.onSurface),
-    );
-
-    if (_pickedlocation != null) {
-      previewcontent = Image.network(
-        locationimage,
-        fit: BoxFit.cover,
-        height: double.infinity,
-        width: double.infinity,
-      );
-    }
-
-    if (_isettinglocation) {
-      previewcontent = const CircularProgressIndicator();
-    }
+    final theme = Theme.of(context);
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-            height: 170,
-            width: double.infinity,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              border: Border.all(
-                width: 1,
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-              ),
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          height: 180,
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              width: 2,
+              color: theme.colorScheme.primary.withOpacity(0.3),
             ),
-            child: previewcontent),
+            color: theme.colorScheme.surface.withOpacity(0.05),
+          ),
+          alignment: Alignment.center,
+          child: _isGettingLocation
+              ? const CircularProgressIndicator()
+              : _pickedLocation != null && _locationImage.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(13),
+                      child: Image.network(
+                        _locationImage,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                      ),
+                    )
+                  : Text(
+                      'No location selected',
+                      style: theme.textTheme.bodyLarge!.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                    ),
+        ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            TextButton.icon(
-              icon: const Icon(Icons.location_on),
-              label: const Text('Get current location'),
-              onPressed: _getcurrentlocation,
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary.withOpacity(0.8),
+                foregroundColor: Colors.white,
+                elevation: 5,
+              ),
+              onPressed: _getCurrentLocation,
+              icon: const Icon(Icons.my_location_rounded),
+              label: const Text('Current Location'),
             ),
-            TextButton.icon(
-              icon: const Icon(Icons.map),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: theme.colorScheme.primary,
+                side: BorderSide(
+                    color: theme.colorScheme.primary.withOpacity(0.6)),
+              ),
+              onPressed: _selectOnMap,
+              icon: const Icon(Icons.map_outlined),
               label: const Text('Select on Map'),
-              onPressed: _selectonmap,
             ),
           ],
-        )
+        ),
       ],
     );
   }

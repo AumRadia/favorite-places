@@ -1,10 +1,11 @@
-import 'package:favorite_places/models/place.dart';
-import 'package:favorite_places/providers/userplaces.dart';
-import 'package:favorite_places/widget/image_input.dart';
-import 'package:favorite_places/widget/location_input.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:favorite_places/widget/image_input.dart';
+import 'package:favorite_places/widget/location_input.dart';
+import 'package:favorite_places/providers/userplaces.dart';
 import 'dart:io';
+
+import '../models/place.dart';
 
 class AddPlacescreen extends ConsumerStatefulWidget {
   const AddPlacescreen({super.key});
@@ -14,65 +15,102 @@ class AddPlacescreen extends ConsumerStatefulWidget {
 }
 
 class _AddPlacescreenState extends ConsumerState<AddPlacescreen> {
-  final _titlecontroller = TextEditingController();
-  File? _selectedimage;
-  placelocation? _selectedlocation;
+  final _titleController = TextEditingController();
+  File? _selectedImage;
+  placelocation? _selectedLocation;
 
-  void _saveplace() {
-    final enterredtitle = _titlecontroller.text;
+  void _savePlace() {
+    final enteredTitle = _titleController.text;
 
-    //print('Title: $enteredTitle');
-    print('Selected Image: $_selectedimage');
-    print('Selected Location: $_selectedlocation');
-
-    if (enterredtitle.isEmpty ||
-        _selectedimage == null ||
-        _selectedlocation == null) {
-      print('Error: Image or location is null');
+    if (enteredTitle.isEmpty ||
+        _selectedImage == null ||
+        _selectedLocation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please complete all fields')),
+      );
       return;
     }
 
     ref
         .read(userplacesprovider.notifier)
-        .addplace(enterredtitle, _selectedimage!, _selectedlocation!);
+        .addplace(enteredTitle, _selectedImage!, _selectedLocation!);
 
     Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
+      backgroundColor: theme.colorScheme.background,
       appBar: AppBar(
-        title: const Text('Add new place'),
+        title: const Text('Add New Place'),
+        elevation: 2,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextField(
-              decoration: const InputDecoration(labelText: 'Title'),
-              controller: _titlecontroller,
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+              controller: _titleController,
+              decoration: InputDecoration(
+                labelText: 'Title',
+                filled: true,
+                fillColor: theme.colorScheme.surface.withOpacity(0.6),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: theme.colorScheme.primary,
+                    width: 2,
+                  ),
+                ),
+              ),
+              style: TextStyle(
+                color: theme.colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
             ),
-            const SizedBox(height: 16),
+            //      const SizedBox(height: 10),
             ImageInput(
               onpickimage: (image) {
-                _selectedimage = image;
+                _selectedImage = image;
               },
             ),
-            const SizedBox(
-              height: 16,
-            ),
+            //   const SizedBox(height: 20),
             LocationInput(
               onselectlocation: (location) {
-                _selectedlocation = location;
+                _selectedLocation = location;
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 30),
             ElevatedButton.icon(
-                onPressed: _saveplace,
-                icon: const Icon(Icons.add),
-                label: const Text('add place'))
+              onPressed: _savePlace,
+              icon: const Icon(Icons.add_location_alt_rounded),
+              label: const Text('Save Place'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+                textStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                elevation: 5,
+                shadowColor: theme.colorScheme.primary.withOpacity(0.3),
+              ),
+            ),
           ],
         ),
       ),
