@@ -1,16 +1,14 @@
-# favorite_places
+# Favorite Places App
 
-A new Flutter project.
+This Flutter app allows users to save and manage their favorite places. Users can enter a title, take a photo using the camera, and select a location either manually or using the device’s GPS. All the data is stored locally on the device using SQLite, so it remains even after the app is closed. Users can view details of saved places on a map and delete them if needed.
 
-## Getting Started
+## Technologies & Tools Used
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- **Flutter** – UI Framework  
+- **Dart** – Programming Language  
+- **SQLite** – Local Storage  
+- **Riverpod** – State Management  
+- **Mapbox** – Map Integration (for selecting and previewing locations)  
+- **Device Camera Access** – To capture place images  
+- **File & Path Packages** – For handling image files  
+- **Google Fonts & Material Design** – For styling  
