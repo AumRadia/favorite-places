@@ -8,7 +8,7 @@ This Flutter app allows users to save and manage their favorite places. Users ca
 - **Dart** – Programming Language  
 - **SQLite** – Local Storage  
 - **Riverpod** – State Management  
-- **Mapbox** – Map Integration (for selecting and previewing locations)  
+- **Google Maps API** – Map Integration (for selecting and previewing locations)  
 - **Device Camera Access** – To capture place images  
 - **File & Path Packages** – For handling image files  
 - **Google Fonts & Material Design** – For styling  
